@@ -12,9 +12,10 @@ you go over their limit. The limit is unknown but the webinterface does
 """
 
 class Honeygain():
-    def __init__(self, token=None):
+    def __init__(self, token=None, debug=False):
         self.basueUrl = 'https://dashboard.honeygain.com/api'
         self.token = token
+        self.debug = debug
     
     def login(self, email=None, password=None):
         if email is None or password is None:
@@ -30,7 +31,8 @@ class Honeygain():
 
     def __request(self, endpoint):
         url = self.basueUrl + endpoint
-        print("Requesting: " + url)
+        if self.debug:
+            print("Requesting: " + url)
         self.__checkBearerToken()
         auth = "Bearer " + self.token
         headers = {"Authorization": auth}
