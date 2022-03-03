@@ -22,7 +22,13 @@ class Honeygain():
         if email is None or password is None:
             raise Exception("Email and password are required")
         try:
-            self.token = requests.post("https://dashboard.honeygain.com/api/v1/users/tokens", json={'email': email,'password': password}).json()['data']["access_token"]
+            req = requests.post("https://dashboard.honeygain.com/api/v1/users/tokens", json={'email': email,'password': password})
+            if req.status_code == 401:
+                raise Exception(req.json()['details'])
+            elif req.status_code != 200:
+                raise Exception("Unknown error")
+            
+            self.token =  req.json()['data']["access_token"]
         except Exception as e:
             raise Exception(e)
         
