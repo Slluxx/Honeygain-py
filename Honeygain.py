@@ -15,6 +15,7 @@ class Honeygain():
     def __init__(self, token=None, debug=False):
         self.basueUrl = 'https://dashboard.honeygain.com/api'
         self.token = token
+        self.userId = None
         self.debug = debug
     
     def login(self, email=None, password=None):
@@ -77,5 +78,37 @@ class Honeygain():
 
     def getMonthlyTrafficStats(self):
          return self.__request("/v1/dashboards/traffic_stats")
+        
+    def getNotifications(self, page=1):
+        if self.userId is None:
+            self.userId = self.getUser()["data"]["id"]
+        return self.__request("/v1/notifications?user_id=" + self.userId + "?page=" + str(page))
 
 
+    # UNTESTED
+
+
+    def tryLuckyPot(self):
+        notifications = self.getNotifications()
+        if len(notifications["data"]) == 0:
+            return {"status": "Luckypot not available"}
+        for notification in notifications["data"]:
+            if notification["template"] == "lucky_pot":
+                self.__notification(notification["hash"], notification["campaign_id"], "triggered")
+                ret = self.__getWinnings().json()
+                print("You have won " + str(ret["data"]["credits"]) + " credits!")
+                self.__notification(notification["hash"], notification["campaign_id"], "closed")
+                return ret
+                    
+    def __getWinnings(self):
+        self.__checkBearerToken()
+        r = requests.post(self.basueUrl+"/v1/contest_winnings", headers={"Authorization": "Bearer " + self.token})
+        if r.status_code != 200:
+            raise Exception("There was an error opening the honey jar, this may be because you've opened it today.")
+        return r
+    
+    def __notification(self, notificationId, campaignId, action):
+        self.__checkBearerToken()
+        r = requests.post(self.basueUrl+"/v1/notifications/"+notificationId+"/actions", headers={"Authorization": "Bearer " + self.token}, json={"campaign_id":campaignId,"action":action,"user_id":self.userId})
+        if r.status_code != 200:
+            raise Exception("Error: could not work with notification. Action: " + action)
