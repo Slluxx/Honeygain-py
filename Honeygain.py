@@ -1,3 +1,4 @@
+import json
 import requests
 
 """
@@ -25,6 +26,8 @@ class Honeygain():
             req = requests.post("https://dashboard.honeygain.com/api/v1/users/tokens", json={'email': email,'password': password})
             if req.status_code == 401:
                 raise Exception(req.json()['details'])
+            if req.status_code == 429:
+                raise Exception("RateLimit exceeded (probably)")
             elif req.status_code != 200:
                 raise Exception("Unknown error")
             
@@ -88,7 +91,7 @@ class Honeygain():
     def getNotifications(self, page=1):
         if self.userId is None:
             self.userId = self.getUser()["data"]["id"]
-        return self.__request("/v1/notifications?user_id=" + self.userId + "?page=" + str(page))
+        return self.__request("/v1/notifications?user_id=" + self.userId)
 
 
     # UNTESTED
@@ -116,5 +119,5 @@ class Honeygain():
     def __notification(self, notificationId, campaignId, action):
         self.__checkBearerToken()
         r = requests.post(self.basueUrl+"/v1/notifications/"+notificationId+"/actions", headers={"Authorization": "Bearer " + self.token}, json={"campaign_id":campaignId,"action":action,"user_id":self.userId})
-        if r.status_code != 200:
+        if r.status_code != 200 or r.status_code != 201 :
             raise Exception("Error: could not work with notification. Action: " + action)
