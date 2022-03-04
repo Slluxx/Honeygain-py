@@ -93,9 +93,7 @@ class Honeygain():
             self.userId = self.getUser()["data"]["id"]
         return self.__request("/v1/notifications?user_id=" + self.userId)
 
-
-    # UNTESTED
-
+    # SEMI TESTED
 
     def tryLuckyPot(self):
         notifications = self.getNotifications()
@@ -105,19 +103,20 @@ class Honeygain():
             if notification["template"] == "lucky_pot":
                 self.__notification(notification["hash"], notification["campaign_id"], "triggered")
                 ret = self.__getWinnings().json()
-                print("You have won " + str(ret["data"]["credits"]) + " credits!")
+                if self.debug:
+                    print("You have won " + str(ret["data"]["credits"]) + " credits!")
                 self.__notification(notification["hash"], notification["campaign_id"], "closed")
                 return ret
                     
     def __getWinnings(self):
         self.__checkBearerToken()
         r = requests.post(self.basueUrl+"/v1/contest_winnings", headers={"Authorization": "Bearer " + self.token})
-        if r.status_code != 200:
+        if r.status_code not in [200]:
             raise Exception("There was an error opening the honey jar, this may be because you've opened it today.")
         return r
     
     def __notification(self, notificationId, campaignId, action):
         self.__checkBearerToken()
         r = requests.post(self.basueUrl+"/v1/notifications/"+notificationId+"/actions", headers={"Authorization": "Bearer " + self.token}, json={"campaign_id":campaignId,"action":action,"user_id":self.userId})
-        if r.status_code != 200 or r.status_code != 201 :
+        if r.status_code not in [200,201]:
             raise Exception("Error: could not work with notification. Action: " + action)
